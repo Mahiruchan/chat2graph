@@ -1,4 +1,7 @@
+import asyncio
 from typing import Any, Dict, List, Optional, Union, cast
+
+import aiohttp
 
 from app.core.common.system_env import SystemEnv
 from app.core.common.type import MessageSourceType
@@ -7,6 +10,17 @@ from app.core.model.task import ToolCallContext
 from app.core.prompt.model_service import FUNC_CALLING_PROMPT
 from app.core.reasoner.model_service import ModelService
 from app.core.toolkit.tool import FunctionCallResult, Tool
+
+# Monkey-patch for aiohttp version conflict between litellm and dbgpt
+# litellm requires aiohttp>=3.12.13, which has ConnectionTimeoutError
+# dbgpt requires aiohttp==3.8.4, which does not have ConnectionTimeoutError
+# We alias asyncio.TimeoutError to the exceptions that are missing in the older version.
+if not hasattr(aiohttp, "ConnectionTimeoutError"):
+    aiohttp.ConnectionTimeoutError = asyncio.TimeoutError
+if not hasattr(aiohttp, "SocketTimeoutError"):
+    aiohttp.SocketTimeoutError = asyncio.TimeoutError
+if not hasattr(aiohttp, "ServerTimeoutError"):
+    aiohttp.ServerTimeoutError = asyncio.TimeoutError
 
 
 class LiteLlmClient(ModelService):
